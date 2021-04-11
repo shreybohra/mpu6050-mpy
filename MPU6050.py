@@ -326,21 +326,31 @@ class MPU6050(object):
 
         return [data[i] for i in range(7)]
 
-    def read(self):
+    def read_g(self):
         raw = self.__read_sensors()
         raw[0:3] = [x/(65536//self.accel_range//2) for x in raw[0:3]]
         raw[4:7] = [x/(65536//self.gyro_range//2) for x in raw[4:7]]
         
         data = MPU6050Data()
-        data.Gx = raw[0]
-        data.Gy = raw[1]
-        data.Gz = raw[2]
-        data.Temperature = raw[3]
-        data.Gyrox = raw[4]
-        data.Gyroy = raw[5]
+        data.Temperature = raw[1]
+        data.Gx = raw[2]
+        data.Gy = raw[3]
+        data.Gz = raw[4]
+        data.Gyrox = raw[5]
+        data.Gyroy = raw[6]
         data.Gyroz = raw[6]
 
-        return raw
+        return data
+
+    def read(self):
+        data = self.read_g()
+        g = 9.8065
+
+        data.Gx = data.Gx * g
+        data.Gy = data.Gy * g
+        data.Gz = data.Gz * g
+
+        return data
 
     
 

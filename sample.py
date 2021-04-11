@@ -10,7 +10,11 @@ def get(mpu):
     data = []
 
     try:
-        motion = mpu.read()        
+        motion = mpu.read()
+        # IMPORTANT - this readout is a value in m/s^2
+        # use mpu.read_g() if the acceleration in terms of g is desired
+        # this would be slightly faster     
+        
         dt = utime.ticks_diff(utime.ticks_ms(), start)
 
         # preallocating speeds up code if data is used as a global
@@ -21,7 +25,8 @@ def get(mpu):
         data[4] = motion.Gz
         data[5] = motion.Gyrox
         data[6] = motion.Gyroy
-        data[7] = motion.Gyroz       
+        data[7] = motion.Gyroz
+               
     except:
         data = [float('nan')]*9
         print("Failed to get data")

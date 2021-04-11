@@ -207,10 +207,6 @@ from machine import Pin, I2C
 import utime
 from ustruct import unpack
 
-accel_range = [2, 4, 8, 16]
-gyro_range = [250, 500, 1000, 2000]
-
-
 class MPU6050Data:
     def __init__(self):
         self.Gx=0
@@ -243,70 +239,70 @@ class MPU6050(object):
         self.acc_lookup = {2: MPU6050_ACCEL_FS_2, 4: MPU6050_ACCEL_FS_4, 
         8: MPU6050_ACCEL_FS_8, 16: MPU6050_ACCEL_FS_16}
 
-        self.acc_rng = 16
-        self.gyro_rng = 500
+        self.accel_range = 16
+        self.gyro_range = 500
 
-        self.init_device()
+        self.__init_device()
 
-    def write_byte(self, reg, val):
+    def __write_byte(self, reg, val):
         self.bytebuf[0] = val
         self.bus.writeto_mem(self.address, reg, self.bytebuf)
 
-    def read_byte(self, reg):
+    def __read_byte(self, reg):
         self.bus.readfrom_mem_into(self.address, reg, self.bytebuf)
         return self.bytebuf[0]
 
-    def set_bitfield(self, reg, pos, length, val):
-        old = self.read_byte(reg)
+    def __set_bitfield(self, reg, pos, length, val):
+        old = self.__read_byte(reg)
         shift = pos - length + 1
         mask = (2**length - 1) << shift
         new = (old & ~mask) | (val << shift)
-        self.write_byte(reg, new)
+        self.__write_byte(reg, new)
 
         
     def identify(self):
-        val = self.read_byte(MPU6050_RA_WHO_AM_I)
+        val = self.__read_byte(MPU6050_RA_WHO_AM_I)
         if val != MPU6050_ADDRESS_AD0_LOW:
             raise OSError("No mpu6050 at address {}".format(self.address))
 
     def reset(self):
         print('* reset')
-        self.write_byte(MPU6050_RA_PWR_MGMT_1, (
+        self.__write_byte(MPU6050_RA_PWR_MGMT_1, (
             (1 << MPU6050_PWR1_DEVICE_RESET_BIT)
         ))
         utime.sleep_ms(100)
 
-        self.write_byte(MPU6050_RA_SIGNAL_PATH_RESET, (
+        self.__write_byte(MPU6050_RA_SIGNAL_PATH_RESET, (
             (1 << MPU6050_PATHRESET_GYRO_RESET_BIT) |
             (1 << MPU6050_PATHRESET_ACCEL_RESET_BIT) |
             (1 << MPU6050_PATHRESET_TEMP_RESET_BIT)
         ))
         utime.sleep_ms(100)
 
-    def init_device(self):
+    def __init_device(self):
         self.identify()
 
         # disable sleep mode and select clock source
-        self.write_byte(MPU6050_RA_PWR_MGMT_1, MPU6050_CLOCK_PLL_XGYRO)
+        self.__write_byte(MPU6050_RA_PWR_MGMT_1, MPU6050_CLOCK_PLL_XGYRO)
 
         # enable all sensors
-        self.write_byte(MPU6050_RA_PWR_MGMT_2, 0)
+        self.__write_byte(MPU6050_RA_PWR_MGMT_2, 0)
 
         # set sampling rate
-        self.write_byte(MPU6050_RA_SMPLRT_DIV, self.rate)
+        self.__write_byte(MPU6050_RA_SMPLRT_DIV, self.rate)
 
         # enable dlpf
-        self.write_byte(MPU6050_RA_CONFIG, 1)
+        self.__write_byte(MPU6050_RA_CONFIG, 1)
 
         # explicitly set accel/gyro range
-        self.set_accel_range(self.acc_rng)
-        self.set_gyro_range(self.gyro_rng)
+        self.set_accel_range(self.accel_range)
+        self.set_gyro_range(self.gyro_range)
 
     def set_gyro_range(self, rng):
         self.gyro_range = rng
         fsr = self.gyro_lookup[rng]
 
-        self.set_bitfield(MPU6050_RA_GYRO_CONFIG,
+        self.__set_bitfield(MPU6050_RA_GYRO_CONFIG,
                           MPU6050_GCONFIG_FS_SEL_BIT,
                           MPU6050_GCONFIG_FS_SEL_LENGTH,
                           fsr)
@@ -316,12 +312,12 @@ class MPU6050(object):
         self.accel_range = rng
         fsr = self.acc_lookup[rng]
 
-        self.set_bitfield(MPU6050_RA_ACCEL_CONFIG,
+        self.__set_bitfield(MPU6050_RA_ACCEL_CONFIG,
                           MPU6050_ACONFIG_AFS_SEL_BIT,
                           MPU6050_ACONFIG_AFS_SEL_LENGTH,
                           fsr)
 
-    def read_sensors(self):
+    def __read_sensors(self):
         self.bus.readfrom_mem_into(self.address,
                                    MPU6050_RA_ACCEL_XOUT_H,
                                    self.sensors)
@@ -331,7 +327,7 @@ class MPU6050(object):
         return [data[i] for i in range(7)]
 
     def read(self):
-        raw = self.read_sensors()
+        raw = self.__read_sensors()
         raw[0:3] = [x/(65536//self.accel_range//2) for x in raw[0:3]]
         raw[4:7] = [x/(65536//self.gyro_range//2) for x in raw[4:7]]
         
